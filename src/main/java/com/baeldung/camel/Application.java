@@ -2,6 +2,7 @@ package com.baeldung.camel;
 
 import javax.ws.rs.core.MediaType;
 
+
 import com.baeldung.camel.pojo.AccountBalance;
 import com.baeldung.camel.pojo.InvoiceResponse;
 import com.baeldung.camel.pojo.PaymentRequest;
@@ -9,6 +10,10 @@ import com.baeldung.camel.process.ProcessRequestUserValidation;
 import com.baeldung.camel.process.ProcessServiceQuery;
 import com.baeldung.camel.process.ProcessUserValidation;
 import com.baeldung.camel.process.ProcessValidateAvailableServices;
+
+import com.baeldung.camel.pojo.*;
+import com.baeldung.camel.process.*;
+
 import com.baeldung.camel.util.PredicateProcessor;
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
@@ -23,13 +28,11 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
 
 @SpringBootApplication
-@ComponentScan(basePackages="com.baeldung.camel")
 public class Application{
 
     private static final String USER_VALIDATION_URL = "http://localhost:9191/api/login/login";
@@ -82,14 +85,14 @@ public class Application{
                 .bindingMode(RestBindingMode.json)
                 .dataFormatProperty("prettyPrint", "true");
 
-            rest("/api/").description("Teste REST Service").id("api-route")
+            rest("aes/mod_val/v1").description("Teste REST Service").id("api-route")
                 .post("/invoice")
                     .produces(MediaType.APPLICATION_JSON)
                     .consumes(MediaType.APPLICATION_JSON)
                     .bindingMode(RestBindingMode.json)
                     .type(PaymentRequest.class)
                     .enableCORS(true)
-                    .to("direct:postInvoiceService")
+                    .to("direct:processPaymentService")
                 .get("/invoice")
                     .bindingMode(RestBindingMode.json)
                     .outType(InvoiceResponse.class)
@@ -165,6 +168,7 @@ public class Application{
                     .unmarshal().json(JsonLibrary.Jackson, InvoiceResponse.class)
             .end();
 
+
             from("direct:processValidateAccount")
                 .setHeader(Exchange.HTTP_URI, constant(VALIDATE_ACCOUNT_SERVICES_URL))
                     .to(VALIDATE_ACCOUNT_SERVICES_URL)
@@ -175,6 +179,14 @@ public class Application{
                             exchange.setProperty("hasFounds",account.getMount()>0);
                         }
                     })
+
+            from("direct:processPaymentService")
+                .process(new CreatePaymentInvoiceProcessor())
+                .setHeader(Exchange.HTTP_METHOD, constant("POST"))
+                .setHeader(Exchange.HTTP_PATH, exchangeProperty("referenceInvoice"))
+                .setHeader(Exchange.HTTP_URI, exchangeProperty("serviceQueryUrl"))
+                .toD("${exchangeProperty.serviceQueryUrl}")
+                    .unmarshal().json(JsonLibrary.Jackson, PaymentResponse.class)
             .end();
         }
     }
