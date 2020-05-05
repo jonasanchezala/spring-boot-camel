@@ -2,12 +2,8 @@ package com.baeldung.camel;
 
 import javax.ws.rs.core.MediaType;
 
-import com.baeldung.camel.pojo.Invoice;
-import com.baeldung.camel.pojo.InvoiceResponse;
-import com.baeldung.camel.pojo.Payment;
-import com.baeldung.camel.process.ProcessServiceQuery;
-import com.baeldung.camel.process.ProcessUserValidation;
-import com.baeldung.camel.process.ProcessValidateAvailableServices;
+import com.baeldung.camel.pojo.*;
+import com.baeldung.camel.process.*;
 import com.baeldung.camel.util.PredicateProcessor;
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
@@ -21,11 +17,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.stereotype.Component;
 
 @SpringBootApplication
-@ComponentScan(basePackages="com.baeldung.camel")
 public class Application{
 
     private static final String USER_VALIDATION_URL = "http://localhost:9191/api/login/login";
@@ -143,12 +137,12 @@ public class Application{
             .end();
 
             from("direct:processPaymentService")
-                    .log("LLEGA AL PAGO DE SERVICIOS")
-                .process(new ProcessServiceQuery())
-                .setHeader(Exchange.HTTP_PATH, simple("${header.reference}"))
+                .process(new CreatePaymentInvoiceProcessor())
+                .setHeader(Exchange.HTTP_METHOD, constant("POST"))
+                .setHeader(Exchange.HTTP_PATH, exchangeProperty("referenceInvoice"))
                 .setHeader(Exchange.HTTP_URI, exchangeProperty("serviceQueryUrl"))
                 .toD("${exchangeProperty.serviceQueryUrl}")
-                    .unmarshal().json(JsonLibrary.Jackson, InvoiceResponse.class)
+                    .unmarshal().json(JsonLibrary.Jackson, PaymentResponse.class)
             .end();
         }
     }
