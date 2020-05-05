@@ -3,6 +3,8 @@ package com.baeldung.camel;
 import javax.ws.rs.core.MediaType;
 
 import com.baeldung.camel.pojo.Invoice;
+import com.baeldung.camel.pojo.InvoiceResponse;
+import com.baeldung.camel.pojo.Payment;
 import com.baeldung.camel.process.ProcessServiceQuery;
 import com.baeldung.camel.process.ProcessUserValidation;
 import com.baeldung.camel.process.ProcessValidateAvailableServices;
@@ -74,17 +76,17 @@ public class Application{
                 .bindingMode(RestBindingMode.json)
                 .dataFormatProperty("prettyPrint", "true");
 
-            rest("/api/").description("Teste REST Service").id("api-route")
+            rest("aes/mod_val/v1").description("Teste REST Service").id("api-route")
                 .post("/invoice")
                     .produces(MediaType.APPLICATION_JSON)
                     .consumes(MediaType.APPLICATION_JSON)
                     .bindingMode(RestBindingMode.auto)
-                    .type(Invoice.class)
+                    .type(Payment.class)
                     .enableCORS(true)
-                    .to("direct:postInvoiceService")
+                    .to("direct:processPaymentService")
                 .get("/invoice")
                     .bindingMode(RestBindingMode.json)
-                    .outType(Invoice.class)
+                    .outType(InvoiceResponse.class)
                     .to("direct:getInvoiceService");
 
             from("direct:getInvoiceService")
@@ -137,7 +139,16 @@ public class Application{
                 .setHeader(Exchange.HTTP_PATH, simple("${header.reference}"))
                 .setHeader(Exchange.HTTP_URI, exchangeProperty("serviceQueryUrl"))
                 .toD("${exchangeProperty.serviceQueryUrl}")
-                    .unmarshal().json(JsonLibrary.Jackson, Invoice.class)
+                    .unmarshal().json(JsonLibrary.Jackson, InvoiceResponse.class)
+            .end();
+
+            from("direct:processPaymentService")
+                    .log("LLEGA AL PAGO DE SERVICIOS")
+                .process(new ProcessServiceQuery())
+                .setHeader(Exchange.HTTP_PATH, simple("${header.reference}"))
+                .setHeader(Exchange.HTTP_URI, exchangeProperty("serviceQueryUrl"))
+                .toD("${exchangeProperty.serviceQueryUrl}")
+                    .unmarshal().json(JsonLibrary.Jackson, InvoiceResponse.class)
             .end();
         }
     }

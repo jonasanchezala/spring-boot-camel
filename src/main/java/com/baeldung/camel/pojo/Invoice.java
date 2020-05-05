@@ -1,22 +1,69 @@
 package com.baeldung.camel.pojo;
 
+import java.util.HashMap;
+import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonPropertyOrder({
+        "type",
+        "reference",
+        "value"
+})
 public class Invoice {
-    private int idFactura;
-    private double valorFactura;
 
-    public int getIdFactura() {
-        return idFactura;
+    @JsonProperty("type")
+    private String type;
+    @JsonProperty("reference")
+    private Integer reference;
+    @JsonProperty("value")
+    private Double value;
+    @JsonIgnore
+    private Map<String, Object> additionalProperties = new HashMap<String, Object>();
+
+    @JsonProperty("type")
+    public String getType() {
+        return type;
     }
 
-    public void setIdFactura(int idFactura) {
-        this.idFactura = idFactura;
+    @JsonProperty("type")
+    public void setType(String type) {
+        this.type = type;
     }
 
-    public double getValorFactura() {
-        return valorFactura;
+    @JsonProperty("reference")
+    public Integer getReference() {
+        return reference;
     }
 
-    public void setValorFactura(double valorFactura) {
-        this.valorFactura = valorFactura;
+    @JsonProperty("reference")
+    public void setReference(Integer reference) {
+        this.reference = reference;
     }
+
+    @JsonProperty("value")
+    public Double getValue() {
+        return value;
+    }
+
+    @JsonProperty("value")
+    public void setValue(Double value) {
+        this.value = value;
+    }
+
+    @JsonAnyGetter
+    public Map<String, Object> getAdditionalProperties() {
+        return this.additionalProperties;
+    }
+
+    @JsonAnySetter
+    public void setAdditionalProperty(String name, Object value) {
+        this.additionalProperties.put(name, value);
+    }
+
 }
