@@ -28,6 +28,7 @@ public class ProcessRequestUserValidation implements Processor {
             exchange.setProperty("password", exchange.getIn().getBody(PaymentRequest.class).getPassword());
             exchange.setProperty("channel", exchange.getIn().getBody(PaymentRequest.class).getChannel());
             exchange.setProperty("invoice", exchange.getIn().getBody(PaymentRequest.class).getInvoice());
+            exchange.setProperty("reference", exchange.getIn().getBody(PaymentRequest.class).getInvoice().getReference());
 
             exchange.getIn().setHeader("serviceType", exchange.getIn().getBody(PaymentRequest.class)
                     .getInvoice().getType());

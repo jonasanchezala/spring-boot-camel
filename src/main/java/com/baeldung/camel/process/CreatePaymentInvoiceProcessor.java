@@ -1,5 +1,7 @@
 package com.baeldung.camel.process;
 
+import com.baeldung.camel.pojo.Invoice;
+import com.baeldung.camel.pojo.InvoiceResponse;
 import com.baeldung.camel.pojo.Payment;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
@@ -15,8 +17,7 @@ public class CreatePaymentInvoiceProcessor implements Processor {
 
     public void process(Exchange exchange) throws Exception {
 
-        Payment payment = exchange.getIn().getBody(Payment.class);
-        String serviceType = payment.getInvoice().getType();
+        String serviceType = exchange.getIn().getHeader("servicetype", String.class);
         String serviceQueryUrl = "";
 
         if (WATER.equals(serviceType)) {
@@ -28,8 +29,13 @@ public class CreatePaymentInvoiceProcessor implements Processor {
         }
 
         exchange.setProperty("serviceType", serviceType);
-        exchange.setProperty("serviceQueryUrl", serviceQueryUrl);
-        exchange.setProperty("referenceInvoice", payment.getInvoice().getReference());
+        exchange.setProperty("servicePaymentUrl", serviceQueryUrl);
+
+        InvoiceResponse invoiceResponse = new InvoiceResponse();
+        Invoice invoice = (Invoice) exchange.getProperty("invoice");
+        invoiceResponse.setIdFactura(invoice.getReference());
+        invoiceResponse.setValorFactura(invoice.getValue());
+
         exchange.getIn().setBody("");
     }
 }

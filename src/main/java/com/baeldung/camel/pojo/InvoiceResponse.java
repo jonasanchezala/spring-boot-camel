@@ -1,6 +1,8 @@
 package com.baeldung.camel.pojo;
 
-public class InvoiceResponse {
+import java.io.Serializable;
+
+public class InvoiceResponse implements Serializable {
     private int idFactura;
     private double valorFactura;
 

@@ -92,7 +92,7 @@ public class Application{
                     .bindingMode(RestBindingMode.json)
                     .type(PaymentRequest.class)
                     .enableCORS(true)
-                    .to("direct:processPaymentService")
+                    .to("direct:postInvoiceService")
                 .get("/invoice")
                     .bindingMode(RestBindingMode.json)
                     .outType(InvoiceResponse.class)
@@ -134,7 +134,14 @@ public class Application{
                                     .choice()
                                         .when(exchangeProperty("serviceAllowed").isEqualTo(true))
                                             .to("direct:processValidateAccount")
-                                                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(200))
+                                                .choice()
+                                                    .when(exchangeProperty("hasFounds").isEqualTo(true))
+                                                        .to("direct:processPaymentService")
+                                                    .otherwise()
+                                                        .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(200))
+                                                        .setBody(constant("Not founds in user account"))
+                                                    .endChoice()
+
                                         .otherwise()
                                             .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(400))
                                         .endChoice()
@@ -178,14 +185,16 @@ public class Application{
                             AccountBalance account = (AccountBalance) exchange.getIn().getBody();
                             exchange.setProperty("hasFounds",account.getMount()>0);
                         }
-                    })
+                    }).end();
 
             from("direct:processPaymentService")
                 .process(new CreatePaymentInvoiceProcessor())
+                    .removeHeaders("*")
                 .setHeader(Exchange.HTTP_METHOD, constant("POST"))
-                .setHeader(Exchange.HTTP_PATH, exchangeProperty("referenceInvoice"))
-                .setHeader(Exchange.HTTP_URI, exchangeProperty("serviceQueryUrl"))
-                .toD("${exchangeProperty.serviceQueryUrl}")
+                .setHeader(Exchange.HTTP_PATH, exchangeProperty("reference"))
+                .setHeader(Exchange.HTTP_URI, exchangeProperty("servicePaymentUrl"))
+                .setHeader(Exchange.CONTENT_TYPE, constant("application/json"))
+                .toD("${exchangeProperty.servicePaymentUrl}")
                     .unmarshal().json(JsonLibrary.Jackson, PaymentResponse.class)
             .end();
         }
