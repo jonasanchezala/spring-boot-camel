@@ -1,10 +1,10 @@
 server:
-  port: 8080
+  port: 10000
 
 # for example purposes of Camel version 2.18 and below
 baeldung:
   api:
-    path: '/camel' 
+    path: '/camel'
 
 camel:
   springboot:

@@ -2,13 +2,17 @@ package com.baeldung.camel;
 
 import javax.ws.rs.core.MediaType;
 
-import com.baeldung.camel.pojo.Invoice;
+import com.baeldung.camel.pojo.AccountBalance;
+import com.baeldung.camel.pojo.InvoiceResponse;
+import com.baeldung.camel.pojo.PaymentRequest;
+import com.baeldung.camel.process.ProcessRequestUserValidation;
 import com.baeldung.camel.process.ProcessServiceQuery;
 import com.baeldung.camel.process.ProcessUserValidation;
 import com.baeldung.camel.process.ProcessValidateAvailableServices;
 import com.baeldung.camel.util.PredicateProcessor;
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
+import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.servlet.CamelHttpTransportServlet;
 import org.apache.camel.impl.DefaultCamelContext;
@@ -22,6 +26,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.stereotype.Component;
 
+import java.io.InputStream;
+
 @SpringBootApplication
 @ComponentScan(basePackages="com.baeldung.camel")
 public class Application{
@@ -29,6 +35,8 @@ public class Application{
     private static final String USER_VALIDATION_URL = "http://localhost:9191/api/login/login";
     private static final String WATER_SERVICE_URL = "http://127.0.0.1:9090/servicios/pagos/v1/payments";
     private static final String AVAILABILITY_SERVICES_URL = "http://localhost:8082/services";
+    private static final String VALIDATE_ACCOUNT_SERVICES_URL = "http://localhost:8088/users/12345678/validate";
+
 
     private static final String GAS = "gas";
     private static final String WATER = "water";
@@ -78,13 +86,13 @@ public class Application{
                 .post("/invoice")
                     .produces(MediaType.APPLICATION_JSON)
                     .consumes(MediaType.APPLICATION_JSON)
-                    .bindingMode(RestBindingMode.auto)
-                    .type(Invoice.class)
+                    .bindingMode(RestBindingMode.json)
+                    .type(PaymentRequest.class)
                     .enableCORS(true)
                     .to("direct:postInvoiceService")
                 .get("/invoice")
                     .bindingMode(RestBindingMode.json)
-                    .outType(Invoice.class)
+                    .outType(InvoiceResponse.class)
                     .to("direct:getInvoiceService");
 
             from("direct:getInvoiceService")
@@ -111,19 +119,36 @@ public class Application{
                         .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(400))
             .end();
 
+            from("direct:postInvoiceService")
+                .routeId("direct-routePost")
+                .tracing()
+                //.choice()
+                    //.when(PredicateProcessor.isValidGetPredicate())
+                        .to("direct:processUserValidation")
+                            .choice()
+                                .when(exchangeProperty("userValid").isEqualTo("true"))
+                                .to("direct:processValidateAvailableServices")
+                                    .choice()
+                                        .when(exchangeProperty("serviceAllowed").isEqualTo(true))
+                                            .to("direct:processValidateAccount")
+                                                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(200))
+                                        .otherwise()
+                                            .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(400))
+                                        .endChoice()
+                                .otherwise()
+                                        .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(401))
+                                .endChoice()
+                            .endChoice()
+                    //.otherwise()
+                       // .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(400))
+                .end();
+
 
             from("direct:processUserValidation")
-                .setHeader(Exchange.HTTP_URI, constant(USER_VALIDATION_URL))
-                .choice()
-                    .when(header(Exchange.HTTP_METHOD).isEqualTo("GET"))
-                        .setHeader(Exchange.HTTP_QUERY, simple("user=${header.userName}&passw=${header.password}"))
-                        .to(USER_VALIDATION_URL)
-                        .process(new ProcessUserValidation())
-                    .otherwise()
-                        .setHeader(Exchange.HTTP_QUERY, simple("user=${body.userName}&passw=${body.password}"))
-                        .to(USER_VALIDATION_URL)
-                        .process(new ProcessUserValidation())
-                .endChoice()
+                .process(new ProcessRequestUserValidation())
+                .setHeader(Exchange.HTTP_METHOD, constant("GET"))
+                .to(USER_VALIDATION_URL + "?user=${header.userName}&passw=${header.password}")
+                .process(new ProcessUserValidation())
             .end();
 
             from("direct:processValidateAvailableServices")
@@ -137,7 +162,19 @@ public class Application{
                 .setHeader(Exchange.HTTP_PATH, simple("${header.reference}"))
                 .setHeader(Exchange.HTTP_URI, exchangeProperty("serviceQueryUrl"))
                 .toD("${exchangeProperty.serviceQueryUrl}")
-                    .unmarshal().json(JsonLibrary.Jackson, Invoice.class)
+                    .unmarshal().json(JsonLibrary.Jackson, InvoiceResponse.class)
+            .end();
+
+            from("direct:processValidateAccount")
+                .setHeader(Exchange.HTTP_URI, constant(VALIDATE_ACCOUNT_SERVICES_URL))
+                    .to(VALIDATE_ACCOUNT_SERVICES_URL)
+                    .unmarshal().json(JsonLibrary.Jackson, AccountBalance.class)
+                    .process(new Processor() {
+                        public void process(Exchange exchange) throws Exception {
+                            AccountBalance account = (AccountBalance) exchange.getIn().getBody();
+                            exchange.setProperty("hasFounds",account.getMount()>0);
+                        }
+                    })
             .end();
         }
     }

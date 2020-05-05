@@ -1,22 +1,31 @@
 package com.baeldung.camel.pojo;
 
 public class Invoice {
-    private int idFactura;
-    private double valorFactura;
+    private String type;
+    private int reference;
+    private double value;
 
-    public int getIdFactura() {
-        return idFactura;
+    public String getType() {
+        return type;
     }
 
-    public void setIdFactura(int idFactura) {
-        this.idFactura = idFactura;
+    public void setType(String type) {
+        this.type = type;
     }
 
-    public double getValorFactura() {
-        return valorFactura;
+    public int getReference() {
+        return reference;
     }
 
-    public void setValorFactura(double valorFactura) {
-        this.valorFactura = valorFactura;
+    public void setReference(int reference) {
+        this.reference = reference;
+    }
+
+    public double getValue() {
+        return value;
+    }
+
+    public void setValue(double value) {
+        this.value = value;
     }
 }
