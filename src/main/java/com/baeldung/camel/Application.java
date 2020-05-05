@@ -224,10 +224,10 @@ public class Application{
                     .setHeader(Exchange.HTTP_METHOD, constant("POST"))
                     .setHeader(Exchange.HTTP_URI, constant(EMAIL_SERVICES_URL))
                     .setHeader(Exchange.CONTENT_TYPE, constant("application/json"))
-                    .setBody(constant("{\n" +
+                    .setBody(simple("{\n" +
                             "  \"email\": \"jothsanchez25@gmail.com\",\n" +
                             "  \"message\": \"Compensacion no admitida\",\n" +
-                            "  \"service\": \"gas\",\n" +
+                            "  \"service\": \"${exchangeProperty.serviceType}\",\n" +
                             "  \"status_payment\": \"unsupported\"\n" +
                             "}"))
                     .to(EMAIL_SERVICES_URL)

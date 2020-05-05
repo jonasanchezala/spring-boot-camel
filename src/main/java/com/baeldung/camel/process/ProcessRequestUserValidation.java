@@ -20,6 +20,7 @@ public class ProcessRequestUserValidation implements Processor {
             userName = exchange.getIn().getHeader("userName", String.class);
             password = Integer.parseInt(exchange.getIn().getHeader("password", String.class));
             exchange.setProperty("reference", exchange.getIn().getHeader("reference", String.class));
+            exchange.setProperty("serviceType", exchange.getIn().getHeader("serviceType", String.class));
         }else{
 
             InputStream payment = exchange.getIn().getBody(InputStream.class);
