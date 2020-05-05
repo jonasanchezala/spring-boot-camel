@@ -16,10 +16,10 @@ public class ProcessRequestUserValidation implements Processor {
         String userName = "";
         int password;
 
-        if (transactionType.equals("GET")){
+        if (!transactionType.equals("POST")){
             userName = exchange.getIn().getHeader("userName", String.class);
             password = Integer.parseInt(exchange.getIn().getHeader("password", String.class));
-
+            exchange.setProperty("reference", exchange.getIn().getHeader("reference", String.class));
         }else{
 
             InputStream payment = exchange.getIn().getBody(InputStream.class);
