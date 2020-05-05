@@ -84,7 +84,7 @@ public class Application{
                     .to("direct:postInvoiceService")
                 .get("/invoice")
                     .bindingMode(RestBindingMode.json)
-                    //.type(Invoice.class)
+                    .outType(Invoice.class)
                     .to("direct:getInvoiceService");
 
             from("direct:getInvoiceService")
@@ -101,14 +101,14 @@ public class Application{
                                         .to("direct:processServiceQuery")
                                         .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(200))
                                     .otherwise()
-                                        .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(503))
+                                        .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(400))
                                     .endChoice()
                                 .otherwise()
                                     .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(401))
                                 .endChoice()
                             .endChoice()
                     .otherwise()
-                        .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(404))
+                        .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(400))
             .end();
 
 
@@ -138,7 +138,6 @@ public class Application{
                 .setHeader(Exchange.HTTP_URI, exchangeProperty("serviceQueryUrl"))
                 .toD("${exchangeProperty.serviceQueryUrl}")
                     .unmarshal().json(JsonLibrary.Jackson, Invoice.class)
-                    .log("${body}")
             .end();
         }
     }
